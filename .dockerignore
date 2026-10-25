@@ -1,0 +1,24 @@
+# 构建上下文排除项
+# 数据与导出产物不进镜像
+data/
+exports/
+
+# 本地编译产物与运行日志
+qingyi-web
+run.log
+run.sh
+*.log
+
+# 备份文件
+*.bak.*
+*.bak
+
+# 工具链与版本控制
+.toolchain/
+.git/
+.gitignore
+
+# 编排文件自身不需要进镜像
+docker-compose.yml
+.env
+.env.example

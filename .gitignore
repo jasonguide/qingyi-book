@@ -1,0 +1,17 @@
+# 运行期数据与用户账目（含真实记录，绝不入库）
+data/
+exports/
+*.bak.*
+
+# 构建产物
+qingyi-web
+run.log
+*.log
+
+# 本地环境配置
+.env
+
+# 工具链与编辑器
+.toolchain/
+.DS_Store
+*.swp

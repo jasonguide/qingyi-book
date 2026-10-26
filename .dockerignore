@@ -22,3 +22,5 @@ run.sh
 docker-compose.yml
 .env
 .env.example
+
+.preview/

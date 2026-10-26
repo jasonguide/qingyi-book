@@ -2,10 +2,10 @@ package main
 
 // HTTP 层：配置、监听、路由、静态资源。
 //
-// 运行模型由飞牛生命周期脚本注入的环境变量决定：
+// 运行模型由环境变量决定：
 //   SOCKET                网关模式下的 Unix Socket 路径；为空则退回 TCP 端口模式
 //   PORT                  TCP 端口，默认 6189
-//   GATEWAY_PREFIX        网关挂载前缀（/app/qingyi-youzhang），分发前剥掉
+//   GATEWAY_PREFIX        网关挂载前缀（如 /app/qingyi-book），分发前剥掉
 //   WWW                   静态资源目录
 //   DATA_FILE             账本 JSON 落盘路径
 //   TRIM_DATA_SHARE_PATHS 共享目录列表，导出到 NAS 时取第一个真实存在的
@@ -41,6 +41,8 @@ type config struct {
 	dataFile string
 	shares   []string
 	port     string
+	// auth 为 nil 表示未启用门禁；由 QY_PASSWORD 构造。
+	auth *authenticator
 }
 
 func loadConfig() config {
@@ -61,6 +63,7 @@ func loadConfig() config {
 	if c.dataFile == "" {
 		c.dataFile = "data.json"
 	}
+	c.auth = newAuthenticator(os.Getenv("QY_PASSWORD"), os.Getenv("QY_SESSION_SECRET"))
 	return c
 }
 
@@ -77,8 +80,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
-	log.Printf("qingyi-youzhang listening %s:%s  web=%s  data=%s  shares=%s",
+	log.Printf("qingyi-book listening %s:%s  web=%s  data=%s  shares=%s",
 		ln.Addr().Network(), ln.Addr().String(), cfg.www, cfg.dataFile, strings.Join(cfg.shares, ":"))
+	if cfg.auth == nil {
+		log.Printf("警告：未设置 QY_PASSWORD，访问门禁未启用，任何能访问该端口的人都能查看和修改账本")
+	} else {
+		log.Printf("访问门禁已启用（会话 %s，登录失败 %d 次锁定 %s）", sessionTTL, maxLoginFails, lockDuration)
+	}
 
 	srv := &http.Server{Handler: cfg.routes(), ReadHeaderTimeout: 15 * time.Second}
 
@@ -114,6 +122,11 @@ func listenUnix(path string) (net.Listener, error) {
 
 func (c config) routes() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/login", c.handleLoginPage)
+	mux.HandleFunc("/api/login", c.handleLogin)
+	mux.HandleFunc("/api/logout", c.handleLogout)
+	mux.HandleFunc("/api/session", c.handleSession)
+	mux.HandleFunc("/api/health", c.handleHealth)
 	mux.HandleFunc("/api/state", c.handleState)
 	mux.HandleFunc("/api/export/xlsx", c.handleExportXlsx)
 	mux.HandleFunc("/api/export/to-nas", c.handleExportToNas)
@@ -122,8 +135,11 @@ func (c config) routes() http.Handler {
 	mux.HandleFunc("/api/storage", c.handleStorage)
 	mux.Handle("/", http.FileServer(http.Dir(c.www)))
 
+	// 门禁包在最外层：网关前缀剥离后仍能正确判定登录态。
+	guarded := c.auth.guard(mux)
+
 	if c.prefix == "" {
-		return mux
+		return guarded
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
@@ -133,7 +149,7 @@ func (c config) routes() http.Handler {
 		} else if strings.HasPrefix(p, c.prefix+"/") {
 			r.URL.Path = strings.TrimPrefix(p, c.prefix)
 		}
-		mux.ServeHTTP(w, r)
+		guarded.ServeHTTP(w, r)
 	})
 }
 

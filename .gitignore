@@ -1,10 +1,13 @@
 # 运行期数据与用户账目（含真实记录，绝不入库）
-data/
+data/*
+!data/data.sample.json
 exports/
 *.bak.*
 
 # 构建产物
 qingyi-web
+qingyi-web.exe
+qingyi-web-*
 run.log
 *.log
 
@@ -15,3 +18,6 @@ run.log
 .toolchain/
 .DS_Store
 *.swp
+
+.preview/
+www/index.html.orig

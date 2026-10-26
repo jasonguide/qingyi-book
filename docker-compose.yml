@@ -5,20 +5,18 @@
 #   sudo docker compose up -d --build
 #
 # 关于 user 与目录权限（第一次跑最常踩的坑）：
-#   容器以非 root 身份运行，宿主机的 ./data 和 ./exports 必须可被该 UID 写入。
-#   本工程目录当前属主是 hermes-agent(uid 987)，若沿用同一目录，请在 .env 里设
-#     QY_UID=987
-#     QY_GID=987
-#   或者执行：sudo chown -R 1000:1000 data exports
+#   容器以非 root 身份运行，宿主机的 ./data 和 ./exports 必须可被该 UID 写入，
 #   否则启动后写 data.json 会 permission denied。
+#   默认 1000:1000；若你的主机目录属主不同，在 .env 里改 QY_UID / QY_GID，
+#   或执行：sudo chown -R 1000:1000 data exports
 
 services:
-  qingyi-youzhang:
+  qingyi-book:
     build:
       context: .
       dockerfile: Dockerfile
-    image: qingyi-youzhang:1.0.0
-    container_name: qingyi-youzhang
+    image: qingyi-book:1.0.0
+    container_name: qingyi-book
 
     # 对外端口 : 容器内端口（容器内固定 6189，由 PORT 环境变量决定）
     ports:
@@ -27,9 +25,15 @@ services:
     environment:
       # TCP 模式：SOCKET 必须为空，否则程序会去监听 Unix socket
       PORT: "6189"
+      # ==== 访问密码（必填）====
+      # 不设或留空 = 不启用门禁，任何能访问本端口的人都能查看和修改账本。
+      QY_PASSWORD: "${QY_PASSWORD:?请在 .env 里设置 QY_PASSWORD 作为访问密码}"
+      # 走 HTTPS 反向代理后设为 "true"，让会话 Cookie 仅经加密连接传输。
+      # 纯内网 http 直连必须是 "false"，否则浏览器不回传 Cookie，表现为登录后又被弹回登录页。
+      QY_COOKIE_SECURE: "${QY_COOKIE_SECURE:-false}"
       WWW: /app/www
       DATA_FILE: /data/data.json
-      # 变量名沿用原版 fpk 约定，指向「导出到 NAS」的落地目录
+      # 「导出到 NAS」功能的落地目录
       TRIM_DATA_SHARE_PATHS: /exports
       TZ: Asia/Shanghai
 
@@ -48,7 +52,7 @@ services:
       - no-new-privileges:true
 
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6189/api/storage"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:6189/api/health"]
       interval: 30s
       timeout: 5s
       start_period: 5s

@@ -1,3 +1,3 @@
-module qingyi-youzhang
+module qingyi-book
 
-go 1.21
+go 1.25

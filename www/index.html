@@ -457,6 +457,7 @@ details.help .help-body{padding-top:8px;color:var(--ink2);font-size:13px}
       <div class="set-row"><div class="sr-l">导入 Excel<small>把表格（.xlsx）里的往来记录合并进账本</small></div><button class="btn btn-ghost btn-sm" id="xlsxInBtn" type="button">导入</button></div>
       <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none">
       <div class="set-row"><div class="sr-l">清空当前账本<small>仅删除当前账本内全部记录，不可撤销</small></div><button class="btn btn-sm" id="clearBtn" style="color:#fff;background:var(--danger)" type="button">清空</button></div>
+      <div class="set-row"><div class="sr-l">退出登录<small>清除本机登录状态，下次访问需重新输入密码</small></div><button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">退出</button></div>
     </div>
     <div class="panel">
       <h3 class="p-title">使用帮助</h3>
@@ -1484,6 +1485,11 @@ function bind(){
   document.getElementById('xlsxNasBtn').addEventListener('click',exportToNas);
   document.getElementById('xlsxInBtn').addEventListener('click',()=>document.getElementById('xlsxFile').click());
   document.getElementById('xlsxFile').addEventListener('change',e=>{if(e.target.files[0])importExcel(e.target.files[0]);e.target.value='';});
+  document.getElementById('logoutBtn').addEventListener('click',async()=>{
+    if(!confirm('确定退出登录？下次访问需要重新输入密码。'))return;
+    try{await fetch(api('api/logout'),{method:'POST',credentials:'same-origin'});}catch(_){}
+    location.href='/login';
+  });
   document.getElementById('clearBtn').addEventListener('click',()=>{
     if(confirm('确定清空当前账本的全部记录？此操作不可撤销。')){
       const backup=state.records.filter(r=>r.accountId===cur().id);

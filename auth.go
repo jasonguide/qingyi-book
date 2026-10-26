@@ -26,8 +26,8 @@ import (
 
 const (
 	sessionCookie = "qyz_session"
-	// 登录态有效期：30 天。单用户自用场景足够，且省去反复输密码。
-	sessionTTL = 30 * 24 * time.Hour
+	// 登录态有效期：5 天。
+	sessionTTL = 5 * 24 * time.Hour
 
 	pbkdf2Iterations = 210000
 	pbkdf2KeyLen     = 32

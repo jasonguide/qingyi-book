@@ -62,12 +62,12 @@ func saveState(path string, s *State) error {
 		rotateBackups(path)
 	}
 	if dir := filepath.Dir(path); dir != "" {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o777); err != nil {
 			return err
 		}
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+	if err := os.WriteFile(tmp, b, 0o666); err != nil {
 		return err
 	}
 	if err := os.Rename(tmp, path); err != nil {
@@ -84,7 +84,7 @@ func rotateBackups(path string) {
 		os.Rename(fmt.Sprintf("%s.bak.%d", path, i), fmt.Sprintf("%s.bak.%d", path, i+1))
 	}
 	if b, err := os.ReadFile(path); err == nil {
-		os.WriteFile(path+".bak.1", b, 0o644)
+		os.WriteFile(path+".bak.1", b, 0o666)
 	}
 }
 

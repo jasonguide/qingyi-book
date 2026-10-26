@@ -21,6 +21,5 @@ run.sh
 # 编排文件自身不需要进镜像
 docker-compose.yml
 .env
-.env.example
 
 .preview/

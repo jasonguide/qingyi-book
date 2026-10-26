@@ -21,3 +21,4 @@ run.log
 
 .preview/
 www/index.html.orig
+.git-msg.txt
